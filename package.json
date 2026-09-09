@@ -1,0 +1,26 @@
+{
+  "name": "api-proptic-hunt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MatiCABJ12/API-PropTIC-Hunt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MatiCABJ12/API-PropTIC-Hunt/issues"
+  },
+  "homepage": "https://github.com/MatiCABJ12/API-PropTIC-Hunt#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.23.0"
+  }
+}
