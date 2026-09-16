@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -118,6 +119,29 @@ app.get('/log-uso-prop', async (req, res) => {
     res.json(resultado.rows);
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/registro', async (req, res) => {
+  try {
+    const { nombre, mail, contrasena } = req.body;
+    if (!nombre || !mail || !contrasena) {
+      return res.status(400).json({ error: 'Faltan datos: nombre, mail y contrasena son obligatorios' });
+    }
+
+    const contrasenaHasheada = await bcrypt.hash(contrasena, 10);
+    const resultado = await pool.query(
+      'INSERT INTO usuario (nombre, mail, contrasena, puntos_totales) VALUES ($1, $2, $3, 0) RETURNING id_usuario, nombre, mail, puntos_totales',
+      [nombre, mail, contrasenaHasheada]
+    );
+
+    res.status(201).json(resultado.rows[0]);
+  } catch (error) {
+    console.error(error);
+    if (error.code === '23505') {
+      return res.status(409).json({ error: 'Ese mail o nombre de usuario ya está registrado' });
+    }
     res.status(500).json({ error: error.message });
   }
 });
