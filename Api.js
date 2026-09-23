@@ -211,6 +211,56 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.get('/mis-puntos', verificarToken, async (req, res) => {
+  try {
+    const idUsuario = req.usuario.id_usuario;
+    const resultado = await pool.query(
+      'SELECT puntos_totales FROM usuario WHERE id_usuario = $1',
+      [idUsuario]
+    );
+    res.json(resultado.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/mis-partidas', verificarToken, async (req, res) => {
+  try {
+    const idUsuario = req.usuario.id_usuario;
+
+    const resultado = await pool.query(
+      `SELECT partida.id_partida, partida.duracion, partida.fecha_hora,
+              participa.rol, participa.puntos_obtenidos, participa.resultado
+       FROM participa
+       JOIN partida ON participa.id_partida = partida.id_partida
+       WHERE participa.id_usuario = $1
+       ORDER BY partida.fecha_hora DESC`,
+      [idUsuario]
+    );
+
+    const partidas = resultado.rows.map((partida) => {
+      const horas = Math.floor(partida.duracion / 3600);
+      const minutos = Math.floor((partida.duracion % 3600) / 60);
+      const segundos = partida.duracion % 60;
+
+      return {
+        id_partida: partida.id_partida,
+        rol: partida.rol,
+        resultado: partida.resultado,
+        puntos_obtenidos: partida.puntos_obtenidos,
+        fecha_hora: partida.fecha_hora,
+        duracion_formateada: `${horas}h ${minutos}m ${segundos}s`,
+      };
+    });
+
+    res.json(partidas);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
