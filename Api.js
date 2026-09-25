@@ -1,10 +1,15 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const verificarToken = require('./authMiddleware');
-require('dotenv').config();
+const crypto = require('crypto');
+const { Resend } = require('resend');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const app = express();
 
@@ -260,6 +265,53 @@ app.get('/mis-partidas', verificarToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.post('/olvide-contrasena', async (req, res) => {
+  try {
+    const { mail } = req.body;
+
+    if (!mail) {
+      return res.status(400).json({ error: 'Falta el mail' });
+    }
+
+    const resultado = await pool.query(
+      'SELECT id_usuario, nombre FROM usuario WHERE mail = $1',
+      [mail]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.json({ mensaje: 'Si el mail existe, se envió un correo con instrucciones' });
+    }
+
+    const usuario = resultado.rows[0];
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiracion = new Date(Date.now() + 15 * 60 * 1000);
+
+    await pool.query(
+      'UPDATE usuario SET token_recuperacion = $1, token_expiracion = $2 WHERE id_usuario = $3',
+      [token, expiracion, usuario.id_usuario]
+    );
+
+    await resend.emails.send({
+      from: 'PropTIC-Hunt <onboarding@resend.dev>',
+      to: mail,
+      subject: 'Recuperar contraseña - PropTIC-Hunt',
+      html: `
+        <p>Hola ${usuario.nombre},</p>
+        <p>Este es tu código para restablecer tu contraseña (válido por 15 minutos):</p>
+        <h2>${token}</h2>
+        <p>Si no pediste esto, ignorá este mail.</p>
+      `,
+    });
+
+    res.json({ mensaje: 'Si el mail existe, se envió un correo con instrucciones' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
