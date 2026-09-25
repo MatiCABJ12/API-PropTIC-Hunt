@@ -292,7 +292,7 @@ app.post('/olvide-contrasena', async (req, res) => {
       [token, expiracion, usuario.id_usuario]
     );
 
-    await resend.emails.send({
+    const envioResultado = await resend.emails.send({
       from: 'PropTIC-Hunt <onboarding@resend.dev>',
       to: mail,
       subject: 'Recuperar contraseña - PropTIC-Hunt',
@@ -311,7 +311,37 @@ app.post('/olvide-contrasena', async (req, res) => {
   }
 });
 
+app.post('/restablecer-contrasena', async (req, res) => {
+  try {
+    const { token, nuevaContrasena } = req.body;
 
+    if (!token || !nuevaContrasena) {
+      return res.status(400).json({ error: 'Faltan datos: token y nuevaContrasena son obligatorios' });
+    }
+
+    const resultado = await pool.query(
+      'SELECT id_usuario FROM usuario WHERE token_recuperacion = $1 AND token_expiracion > NOW()',
+      [token]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(400).json({ error: 'Token inválido o expirado' });
+    }
+
+    const usuario = resultado.rows[0];
+    const contrasenaHasheada = await bcrypt.hash(nuevaContrasena, 10);
+
+    await pool.query(
+      'UPDATE usuario SET contrasena = $1, token_recuperacion = NULL, token_expiracion = NULL WHERE id_usuario = $2',
+      [contrasenaHasheada, usuario.id_usuario]
+    );
+
+    res.json({ mensaje: 'Contraseña actualizada correctamente' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
