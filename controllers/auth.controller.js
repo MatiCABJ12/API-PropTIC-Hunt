@@ -93,4 +93,20 @@ const restablecerContrasena = async (req, res) => {
   res.json({ message: "Contraseña actualizada correctamente" });
 };
 
-export default { registro, login, olvideContrasena, restablecerContrasena };
+const verificarTokenRecuperacion = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: "Falta el token" });
+  }
+
+  const usuario = await UsuarioService.buscarPorTokenRecuperacion(token);
+
+  if (!usuario) {
+    return res.status(400).json({ message: "Token inválido o expirado" });
+  }
+
+  res.json({ message: "Token válido" });
+};
+
+export default {registro, login, olvideContrasena, verificarTokenRecuperacion, restablecerContrasena,};

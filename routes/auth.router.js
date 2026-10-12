@@ -6,6 +6,7 @@ const router = Router();
 router.post("/registro", AuthController.registro);
 router.post("/login", AuthController.login);
 router.post("/olvide-contrasena", AuthController.olvideContrasena);
+router.post("/verificar-token", AuthController.verificarTokenRecuperacion);
 router.post("/restablecer-contrasena", AuthController.restablecerContrasena);
 
 export default router;
