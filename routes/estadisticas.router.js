@@ -6,5 +6,6 @@ const router = Router();
 
 router.get("/puntos", verifyToken, EstadisticasController.getPuntos);
 router.get("/partidas", verifyToken, EstadisticasController.getPartidas);
+router.get("/resumen", verifyToken, EstadisticasController.getResumen);
 
 export default router;
