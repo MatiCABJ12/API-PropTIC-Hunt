@@ -5,6 +5,7 @@ import { verifyToken } from "../middlewares/auth.middleware.js";
 const router = Router();
 
 router.get("/partidas", verifyToken, JuegoController.getPartidas);
+router.post("/partidas", verifyToken, JuegoController.guardarPartida);
 router.get("/misiones", verifyToken, JuegoController.getMisiones);
 router.get("/participaciones", verifyToken, JuegoController.getParticipaciones);
 router.get("/realizaciones", verifyToken, JuegoController.getRealizaciones);

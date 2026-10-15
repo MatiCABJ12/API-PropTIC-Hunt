@@ -21,29 +21,60 @@ const formatearDuracion = (segundosTotales) => {
   return partes.length > 0 ? partes.join(" ") : "0s";
 };
 
+const porcentaje = (parte, total) =>
+  total > 0 ? Math.round((parte / total) * 100) : 0;
+
 const getPartidas = async (idUsuario) => {
   const { rows } = await pool.query(
-    `SELECT partida.id_partida, partida.duracion, partida.fecha_hora,
-            participa.rol, participa.puntos_obtenidos, participa.resultado
+    `SELECT
+       partida.id_partida,
+       partida.duracion,
+       to_char(partida.fecha_hora AT TIME ZONE 'UTC' AT TIME ZONE 'America/Argentina/Buenos_Aires', 'DD/MM/YYYY') AS fecha,
+       to_char(partida.fecha_hora AT TIME ZONE 'UTC' AT TIME ZONE 'America/Argentina/Buenos_Aires', 'HH24:MI') AS hora,
+       participa.rol,
+       participa.resultado,
+       participa.puntos_obtenidos,
+       participa.disparos_acertados,
+       participa.disparos_totales,
+       participa.silbidos,
+       participa.tiempo_sobrevivido,
+       (SELECT COUNT(*) FROM participa otros
+         WHERE otros.id_partida = partida.id_partida)::int AS cantidad_jugadores,
+       (SELECT COUNT(*) FROM participa otros
+         WHERE otros.id_partida = partida.id_partida
+           AND otros.puntos_obtenidos > participa.puntos_obtenidos)::int + 1 AS puesto
      FROM participa
      JOIN partida ON participa.id_partida = partida.id_partida
      WHERE participa.id_usuario = $1
-     ORDER BY partida.fecha_hora DESC`,
+     ORDER BY partida.fecha_hora DESC, partida.id_partida DESC`,
     [idUsuario]
   );
 
-  return rows.map((partida) => ({
-    id_partida: partida.id_partida,
-    rol: partida.rol,
-    resultado: partida.resultado,
-    puntos_obtenidos: partida.puntos_obtenidos,
-    fecha_hora: partida.fecha_hora,
-    duracion_formateada: formatearDuracion(partida.duracion),
-  }));
-};
+  return rows.map((p) => {
+    const partida = {
+      rol: p.rol,
+      resultado: p.resultado,
+      puntos_obtenidos: p.puntos_obtenidos,
+      fecha: p.fecha,
+      hora: p.hora,
+      duracion_formateada: formatearDuracion(p.duracion),
+      cantidad_jugadores: p.cantidad_jugadores,
+      puesto: p.puesto,
+    };
 
-const porcentaje = (parte, total) =>
-  total > 0 ? Math.round((parte / total) * 100) : 0;
+    // Datos propios de cada rol
+    if (p.rol === "Cazador") {
+      partida.disparos_acertados = p.disparos_acertados;
+      partida.disparos_totales = p.disparos_totales;
+      partida.precision_disparos = porcentaje(p.disparos_acertados, p.disparos_totales);
+    } else if (p.rol === "Prop") {
+      partida.silbidos = p.silbidos;
+      partida.tiempo_sobrevivido = formatearDuracion(p.tiempo_sobrevivido);
+    }
+
+    return partida;
+  });
+};
 
 const getResumen = async (idUsuario) => {
   const { rows } = await pool.query(

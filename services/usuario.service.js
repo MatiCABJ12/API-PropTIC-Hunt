@@ -16,6 +16,14 @@ const buscarPorMail = async (mail) => {
   return rows[0];
 };
 
+const buscarPorNombres = async (nombres) => {
+  const { rows } = await pool.query(
+    "SELECT id_usuario, nombre FROM usuario WHERE nombre = ANY($1)",
+    [nombres]
+  );
+  return rows;
+};
+
 const guardarTokenRecuperacion = async (idUsuario, token) => {
   await pool.query(
     `UPDATE usuario
@@ -59,6 +67,7 @@ const deleteUsuario = async (id) => {
 export default {
   crearUsuario,
   buscarPorMail,
+  buscarPorNombres,
   guardarTokenRecuperacion,
   buscarPorTokenRecuperacion,
   actualizarContrasena,
