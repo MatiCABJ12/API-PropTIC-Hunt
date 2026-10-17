@@ -20,10 +20,32 @@ app.use("/logs", LogsRouter);
 
 app.use((error, req, res, next) => {
   if (error.code === "23505") {
+    if (error.table === "usuario") {
+      return res
+        .status(409)
+        .json({ message: "Ese mail o nombre de usuario ya está registrado" });
+    }
+    if (error.constraint === "participa_partida_usuario_unique") {
+      return res
+        .status(409)
+        .json({ message: "Ya guardaste tu resultado de esta partida" });
+    }
+    if (error.constraint === "un_cazador_por_partida") {
+      return res
+        .status(409)
+        .json({ message: "Esta partida ya tiene un Cazador" });
+    }
     return res
       .status(409)
-      .json({ message: "Ese mail o nombre de usuario ya está registrado" });
+      .json({ message: "Ya existe un registro con esos datos" });
   }
+
+  if (error.code === "23503") {
+    return res.status(400).json({
+      message: "Algún dato hace referencia a algo que no existe (por ejemplo, una misión inválida)",
+    });
+  }
+
   console.error(error);
   res.status(500).json({ message: error.message });
 });
