@@ -1,10 +1,13 @@
 import pool from "../db.js";
 
+// Fecha y hora de la partida en horario argentino
 const FECHA =
   "to_char(partida.fecha_hora AT TIME ZONE 'UTC' AT TIME ZONE 'America/Argentina/Buenos_Aires', 'DD/MM/YYYY')";
 const HORA =
   "to_char(partida.fecha_hora AT TIME ZONE 'UTC' AT TIME ZONE 'America/Argentina/Buenos_Aires', 'HH24:MI')";
 
+// Trae los logs de UN jugador, de la partida más reciente a la más vieja.
+// (tabla, columnas y orden son textos fijos del código, no vienen del usuario)
 const consultar = async (tabla, columnas, orden, idUsuario, joinExtra = "") => {
   const { rows } = await pool.query(
     `SELECT ${FECHA} AS fecha, ${HORA} AS hora, ${columnas}
@@ -34,44 +37,16 @@ const getDisparoCazador = (idUsuario) =>
     idUsuario
   );
 
-const getMecanicaRuido = (idUsuario) =>
-  consultar(
-    "log_mecanica_ruido",
-    "l.segundo_partida, l.sospecha_generada",
-    "l.segundo_partida",
-    idUsuario
-  );
-
-const getProgresoMision = (idUsuario) =>
-  consultar(
-    "log_progreso_mision",
-    "mision.descripcion AS mision, l.progreso, l.segundo_partida",
-    "l.segundo_partida",
-    idUsuario,
-    "JOIN mision ON l.id_mision = mision.id_mision"
-  );
-
 const getUsoHabilidad = (idUsuario) =>
   consultar(
     "log_uso_habilidad",
-    "l.momento_uso, l.nombre_habilidad, l.fue_exitosa",
+    "l.momento_uso, l.nombre_habilidad",
     "l.momento_uso",
-    idUsuario
-  );
-
-const getUsoProp = (idUsuario) =>
-  consultar(
-    "log_uso_prop",
-    "l.nombre_objeto, l.tiempo_transformado, l.fue_atrapado",
-    "l.id_uso_prop",
     idUsuario
   );
 
 export default {
   getAbandono,
   getDisparoCazador,
-  getMecanicaRuido,
-  getProgresoMision,
   getUsoHabilidad,
-  getUsoProp,
 };

@@ -12,4 +12,8 @@ const getResumen = async (req, res) => {
   res.json(await EstadisticasService.getResumen(req.usuario.id_usuario));
 };
 
-export default { getPuntos, getPartidas, getResumen };
+const getMisiones = async (req, res) => {
+  res.json(await EstadisticasService.getMisiones(req.usuario.id_usuario));
+};
+
+export default { getPuntos, getPartidas, getResumen, getMisiones };

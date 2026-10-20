@@ -17,10 +17,7 @@ const LOGS = {
     fase_timbre_sonando: "bool",
     segundo_partida: "int",
   },
-  ruidos: { sospecha_generada: "int", segundo_partida: "int" },
-  habilidades: { nombre_habilidad: "texto", fue_exitosa: "bool", momento_uso: "int" },
-  props: { nombre_objeto: "texto", tiempo_transformado: "int", fue_atrapado: "bool" },
-  progreso_misiones: { id_mision: "int", progreso: "texto", segundo_partida: "int" },
+  habilidades: { nombre_habilidad: "texto", momento_uso: "int" },
   abandonos: {
     tiempo_transcurrido: "int",
     rol_actual: "texto",
@@ -92,9 +89,6 @@ const validarPartida = (d) => {
   if (!RESULTADOS.includes(d.resultado)) {
     return "El resultado tiene que ser Victoria o Derrota";
   }
-  if (!esEntero(d.puntos_obtenidos)) {
-    return "puntos_obtenidos tiene que ser un número entero mayor o igual a 0";
-  }
 
   for (const campo of CAMPOS_OPCIONALES) {
     if (d[campo] !== undefined && !esEntero(d[campo])) {
@@ -114,9 +108,6 @@ const validarPartida = (d) => {
 
   if (d.rol === "Prop" && (d.disparos ?? []).length > 0) {
     return "Solo el Cazador puede mandar disparos";
-  }
-  if (d.rol === "Cazador" && (d.props ?? []).length > 0) {
-    return "Solo un Prop puede mandar props";
   }
 
   return null;
@@ -139,22 +130,21 @@ const guardarPartida = async (req, res) => {
     duracion: datos.duracion,
     rol: datos.rol,
     resultado: datos.resultado,
-    puntos_obtenidos: datos.puntos_obtenidos,
     disparos_acertados: datos.rol === "Cazador" ? datos.disparos_acertados ?? 0 : 0,
     disparos_totales: datos.rol === "Cazador" ? datos.disparos_totales ?? 0 : 0,
     silbidos: datos.rol === "Prop" ? datos.silbidos ?? 0 : 0,
     tiempo_sobrevivido: datos.rol === "Prop" ? datos.tiempo_sobrevivido ?? 0 : 0,
     disparos: datos.disparos ?? [],
-    ruidos: datos.ruidos ?? [],
     habilidades: datos.habilidades ?? [],
-    props: datos.props ?? [],
-    progreso_misiones: datos.progreso_misiones ?? [],
     abandonos: datos.abandonos ?? [],
   };
 
-  await JuegoService.guardarPartida(req.usuario.id_usuario, limpio);
+  const misionesCumplidas = await JuegoService.guardarPartida(req.usuario.id_usuario, limpio);
 
-  res.status(201).json({ message: "Partida guardada correctamente" });
+    res.status(201).json({
+    message: "Partida guardada correctamente",
+    misiones_cumplidas: misionesCumplidas,
+  });
 };
 
 const getMisiones = async (req, res) => {

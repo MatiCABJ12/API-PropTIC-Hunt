@@ -1,4 +1,5 @@
 import pool from "../db.js";
+import estadisticasService from "./estadisticas.service.js";
 
 const getPartidas = async () => {
   const { rows } = await pool.query("SELECT * FROM partida");
@@ -9,9 +10,9 @@ const guardarLogs = async (client, idPartida, idUsuario, datos) => {
   if (datos.disparos.length > 0) {
     await client.query(
       `INSERT INTO log_disparo_cazador
-         (impacto_exitoso, vida_restante, linterna_activa, fase_timbre_sonando,
+         (impacto_exitoso, vida_restante, fase_timbre_sonando,
           segundo_partida, id_partida, id_usuario)
-       SELECT x.impacto_exitoso, x.vida_restante, false, x.fase_timbre_sonando,
+       SELECT x.impacto_exitoso, x.vida_restante, x.fase_timbre_sonando,
               x.segundo_partida, $2::int, $3::int
        FROM json_to_recordset($1::json) AS x(
          impacto_exitoso boolean, vida_restante int,
@@ -20,47 +21,14 @@ const guardarLogs = async (client, idPartida, idUsuario, datos) => {
     );
   }
 
-  if (datos.ruidos.length > 0) {
-    await client.query(
-      `INSERT INTO log_mecanica_ruido
-         (sospecha_generada, segundo_partida, id_partida, id_usuario)
-       SELECT x.sospecha_generada, x.segundo_partida, $2::int, $3::int
-       FROM json_to_recordset($1::json) AS x(
-         sospecha_generada int, segundo_partida int)`,
-      [JSON.stringify(datos.ruidos), idPartida, idUsuario]
-    );
-  }
-
   if (datos.habilidades.length > 0) {
     await client.query(
       `INSERT INTO log_uso_habilidad
-         (nombre_habilidad, fue_exitosa, momento_uso, id_partida, id_usuario)
-       SELECT x.nombre_habilidad, x.fue_exitosa, x.momento_uso, $2::int, $3::int
+         (nombre_habilidad, momento_uso, id_partida, id_usuario)
+       SELECT x.nombre_habilidad, x.momento_uso, $2::int, $3::int
        FROM json_to_recordset($1::json) AS x(
-         nombre_habilidad text, fue_exitosa boolean, momento_uso int)`,
+         nombre_habilidad text, momento_uso int)`,
       [JSON.stringify(datos.habilidades), idPartida, idUsuario]
-    );
-  }
-
-  if (datos.props.length > 0) {
-    await client.query(
-      `INSERT INTO log_uso_prop
-         (nombre_objeto, tiempo_transformado, fue_atrapado, id_partida, id_usuario)
-       SELECT x.nombre_objeto, x.tiempo_transformado, x.fue_atrapado, $2::int, $3::int
-       FROM json_to_recordset($1::json) AS x(
-         nombre_objeto text, tiempo_transformado int, fue_atrapado boolean)`,
-      [JSON.stringify(datos.props), idPartida, idUsuario]
-    );
-  }
-
-  if (datos.progreso_misiones.length > 0) {
-    await client.query(
-      `INSERT INTO log_progreso_mision
-         (progreso, segundo_partida, id_mision, id_partida, id_usuario)
-       SELECT x.progreso, x.segundo_partida, x.id_mision, $2::int, $3::int
-       FROM json_to_recordset($1::json) AS x(
-         progreso text, segundo_partida int, id_mision int)`,
-      [JSON.stringify(datos.progreso_misiones), idPartida, idUsuario]
     );
   }
 
@@ -102,7 +70,7 @@ const guardarPartida = async (idUsuario, datos) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         datos.rol,
-        datos.puntos_obtenidos,
+        0,
         datos.resultado,
         idUsuario,
         idPartida,
@@ -113,14 +81,42 @@ const guardarPartida = async (idUsuario, datos) => {
       ]
     );
 
-    await client.query(
-      "UPDATE usuario SET puntos_totales = puntos_totales + $1 WHERE id_usuario = $2",
-      [datos.puntos_obtenidos, idUsuario]
-    );
-
     await guardarLogs(client, idPartida, idUsuario, datos);
 
+    const misiones = await estadisticasService.calcularMisiones(idUsuario, client);
+    const cumplidas = misiones.filter((m) => m.completada);
+    let misionesNuevas = [];
+
+    if (cumplidas.length > 0) {
+      const { rows: insertadas } = await client.query(
+        `INSERT INTO usuario_mision (id_usuario, id_mision)
+         SELECT $1::int, UNNEST($2::int[])
+         ON CONFLICT DO NOTHING
+         RETURNING id_mision`,
+        [idUsuario, cumplidas.map((m) => m.id_mision)]
+      );
+
+      misionesNuevas = cumplidas.filter((m) =>
+        insertadas.some((i) => i.id_mision === m.id_mision)
+      );
+    }
+
+    const premio = misionesNuevas.reduce((total, m) => total + m.recompensa, 0);
+
+    await client.query(
+      "UPDATE participa SET puntos_obtenidos = $1 WHERE id_partida = $2 AND id_usuario = $3",
+      [premio, idPartida, idUsuario]
+    );
+
+    if (premio > 0) {
+      await client.query(
+        "UPDATE usuario SET puntos_totales = puntos_totales + $1 WHERE id_usuario = $2",
+        [premio, idUsuario]
+      );
+    }
+
     await client.query("COMMIT");
+    return misionesNuevas.map(({ id_mision, ...resto }) => resto);
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

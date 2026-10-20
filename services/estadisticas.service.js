@@ -62,7 +62,6 @@ const getPartidas = async (idUsuario) => {
       puesto: p.puesto,
     };
 
-    // Datos propios de cada rol
     if (p.rol === "Cazador") {
       partida.disparos_acertados = p.disparos_acertados;
       partida.disparos_totales = p.disparos_totales;
@@ -136,4 +135,83 @@ const getResumen = async (idUsuario) => {
   };
 };
 
-export default { getPuntos, getPartidas, getResumen };
+const calcularMisiones = async (idUsuario, db) => {
+  const { rows: misiones } = await db.query(
+    "SELECT id_mision, descripcion, recompensa, tipo, objetivo FROM mision ORDER BY id_mision"
+  );
+
+  const { rows } = await db.query(
+    `SELECT
+       COUNT(*)::int AS partidas_jugadas,
+       COUNT(*) FILTER (WHERE resultado = 'Victoria')::int AS victorias,
+       COUNT(*) FILTER (WHERE resultado = 'Victoria' AND rol = 'Prop')::int AS victorias_prop,
+       COUNT(*) FILTER (WHERE resultado = 'Victoria' AND rol = 'Cazador')::int AS victorias_cazador,
+       COALESCE(MAX(tiempo_sobrevivido), 0)::int AS mejor_tiempo_sobrevivido,
+       COALESCE(MAX(disparos_acertados), 0)::int AS mejor_disparos_acertados,
+       COALESCE(MAX(silbidos), 0)::int AS mejor_silbidos
+     FROM participa
+     WHERE id_usuario = $1`,
+    [idUsuario]
+  );
+  const partidas = rows[0];
+
+  const timbre = await db.query(
+    `SELECT COALESCE(MAX(cantidad), 0)::int AS mejor
+     FROM (
+       SELECT COUNT(*) AS cantidad
+       FROM log_disparo_cazador
+       WHERE id_usuario = $1 AND impacto_exitoso AND fase_timbre_sonando
+       GROUP BY id_partida
+     ) por_partida`,
+    [idUsuario]
+  );
+
+  const habilidades = await db.query(
+    `SELECT COALESCE(MAX(cantidad), 0)::int AS mejor
+     FROM (
+       SELECT COUNT(*) AS cantidad
+       FROM log_uso_habilidad
+       WHERE id_usuario = $1
+       GROUP BY id_partida
+     ) por_partida`,
+    [idUsuario]
+  );
+
+  const medidas = {
+    partidas_jugadas: partidas.partidas_jugadas,
+    victorias: partidas.victorias,
+    victorias_prop: partidas.victorias_prop,
+    victorias_cazador: partidas.victorias_cazador,
+    tiempo_sobrevivido: partidas.mejor_tiempo_sobrevivido,
+    disparos_acertados_partida: partidas.mejor_disparos_acertados,
+    silbidos_partida: partidas.mejor_silbidos,
+    disparos_timbre_partida: timbre.rows[0].mejor,
+    habilidades_partida: habilidades.rows[0].mejor,
+  };
+
+  return misiones.map((mision) => {
+    const objetivo = mision.objetivo ?? 0;
+    const progreso = Math.min(medidas[mision.tipo] ?? 0, objetivo);
+
+    const progresoTexto =
+      mision.tipo === "tiempo_sobrevivido"
+        ? `${formatearDuracion(progreso)} / ${formatearDuracion(objetivo)}`
+        : `${progreso} / ${objetivo}`;
+
+    return {
+      id_mision: mision.id_mision,
+      descripcion: mision.descripcion,
+      recompensa: mision.recompensa,
+      progreso_texto: progresoTexto,
+      porcentaje: porcentaje(progreso, objetivo),
+      completada: objetivo > 0 && progreso >= objetivo,
+    };
+  });
+};
+
+const getMisiones = async (idUsuario) => {
+  const misiones = await calcularMisiones(idUsuario, pool);
+  return misiones.map(({ id_mision, ...resto }) => resto);
+};
+
+export default { getPuntos, getPartidas, getResumen, getMisiones, calcularMisiones };
