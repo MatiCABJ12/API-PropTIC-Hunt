@@ -10,6 +10,7 @@ import LogsRouter from "./routes/logs.router.js";
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.static("public"));
 
 app.get("/", (_, res) => res.send("PropTIC-Hunt API is running..."));
 app.use("/auth", AuthRouter);

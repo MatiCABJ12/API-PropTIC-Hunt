@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PropTIC-Hunt · Panel de la API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--locker:#1f5c4d;--locker-d:#154036;--pase:#f2c230;--tinta:#1b2a2f;--piso:#e2e8e0;--papel:#fbfcfa;--rojo:#b8402c;--linea:#c5cfc6;--gris:#5b6b66}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font-family:"Instrument Sans",system-ui,sans-serif;color:var(--tinta);background:var(--piso);background-image:linear-gradient(rgba(31,92,77,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(31,92,77,.08) 1px,transparent 1px);background-size:56px 56px;line-height:1.5}
+h1,h2,.pase,.stat b{font-family:"Bricolage Grotesque",system-ui,sans-serif}
+header{background:var(--locker);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;padding:.9rem 1.2rem;border-bottom:5px solid var(--locker-d)}
+h1{margin:0;font-size:1.6rem;font-weight:800}
+header p{margin:0;font-size:.85rem;opacity:.8}
+.der-h{display:flex;align-items:center;gap:.8rem}
+.pase{background:var(--pase);color:var(--tinta);border-radius:10px;padding:.4rem .9rem .4rem 2rem;position:relative;font-weight:800;font-size:1.3rem;box-shadow:0 3px 0 rgba(0,0,0,.28)}
+.pase::before{content:"";position:absolute;left:.75rem;top:50%;width:.7rem;height:.7rem;margin-top:-.35rem;border-radius:50%;background:var(--locker-d)}
+.pase small{font-size:.7rem;font-weight:600;margin-left:.3rem}
+.tabs{display:flex;gap:.2rem;flex-wrap:wrap;background:var(--locker-d);padding:0 1rem}
+.tabs button{background:none;border:0;border-bottom:4px solid transparent;color:#cfe3da;font:600 .95rem inherit;font-family:inherit;padding:.7rem .9rem;cursor:pointer}
+.tabs button.on{color:#fff;border-bottom-color:var(--pase)}
+main{max-width:1000px;margin:1.2rem auto;padding:0 1rem}
+.panel{display:none}.panel.on{display:block}
+.bloque{background:var(--papel);border:1px solid var(--linea);border-left:6px solid var(--locker);border-radius:6px;padding:1rem 1.2rem;margin-bottom:1rem}
+.bloque.post{border-left-color:var(--pase)}
+h2{margin:0 0 .7rem;font-size:1.15rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.ep{font:600 .76rem ui-monospace,Consolas,monospace;background:var(--tinta);color:#fff;border-radius:4px;padding:.12rem .45rem}
+label{display:block;font-size:.85rem;font-weight:600;margin:.6rem 0 .2rem}
+input,select{width:100%;padding:.55rem .65rem;border:1.5px solid var(--tinta);border-radius:6px;background:#fff;font:inherit}
+input[type=checkbox]{width:auto;margin-right:.4rem}
+.chk{display:flex;align-items:center;font-weight:400;margin:.7rem 0 0}
+.btn{background:var(--locker);color:#fff;border:0;border-radius:6px;padding:.6rem 1.1rem;font:600 1rem inherit;font-family:inherit;cursor:pointer;margin-top:.8rem}
+.btn.chico{margin:0;padding:.35rem .8rem;font-size:.85rem;background:var(--locker-d)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--pase);outline-offset:2px}
+.msg{margin-top:.7rem;padding:.55rem .8rem;border-radius:6px;font-size:.92rem}
+.msg:empty{display:none}
+.msg.ok{background:#dcefe4}.msg.err{background:#f6dcd6}
+.vacio{color:var(--gris);margin:.3rem 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.7rem}
+.dos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.2rem .9rem}
+.stat{background:#fff;border:1px solid var(--linea);border-radius:6px;padding:.6rem .8rem}
+.stat span{display:block;font-size:.8rem;color:var(--gris)}
+.stat b{font-size:1.5rem}
+.tabla{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:.45rem .6rem;border-bottom:1px solid var(--linea);text-align:left;white-space:nowrap}
+th{background:#eef2ed;text-transform:capitalize}
+.vic{color:var(--locker);font-weight:600}.der{color:var(--rojo);font-weight:600}
+.mis{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:.8rem}
+.m{background:#fff;border:1px solid var(--linea);border-radius:6px;padding:.7rem .9rem}
+.mt{font-weight:600;margin-bottom:.4rem}
+.mf{display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.35rem}
+.barra{height:10px;background:#dde5df;border-radius:5px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--locker)}
+.m.ok{border-color:var(--pase);border-width:2px}
+.m.ok .barra i{background:var(--pase)}
+.m small{color:var(--locker);font-weight:600}
+#lista details{border-bottom:1px solid var(--linea);padding:.3rem 0}
+#lista summary{cursor:pointer;font:600 .85rem ui-monospace,Consolas,monospace}
+#lista .bien{color:var(--locker)}#lista .mal{color:var(--rojo)}
+#lista pre{background:var(--tinta);color:#e8f0ec;padding:.7rem;border-radius:6px;overflow-x:auto;font-size:.8rem;margin:.4rem 0}
+@media (max-width:600px){h1{font-size:1.3rem}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>PropTIC-Hunt</h1><p>Panel de pruebas de la API</p></div>
+  <div class="der-h"><span id="quien"></span><button class="btn chico" id="salir" hidden>Salir</button><div class="pase"><span id="pts">—</span><small>PTS</small></div></div>
+</header>
+<nav class="tabs">
+  <button data-t="cuenta">Cuenta</button><button data-t="resumen">Resumen</button><button data-t="historial">Historial</button><button data-t="misiones">Misiones</button><button data-t="logs">Logs</button><button data-t="partida">Partida de prueba</button>
+</nav>
+<main>
+
+<section class="panel" id="p-cuenta">
+  <div class="bloque"><h2>Estado de la API <span class="ep">GET /</span></h2>
+    <button class="btn chico" id="b-estado">Probar conexión</button><div class="msg" id="a-estado"></div></div>
+
+  <div class="bloque post"><h2>Entrar <span class="ep">POST /auth/login</span></h2>
+    <form id="f-login"><div class="dos"><div><label for="l-mail">Mail</label><input id="l-mail" type="email" required></div><div><label for="l-pass">Contraseña</label><input id="l-pass" type="password" required></div></div>
+    <button class="btn">Entrar</button></form><div class="msg" id="a-login"></div></div>
+
+  <div class="bloque post"><h2>Crear cuenta <span class="ep">POST /auth/registro</span></h2>
+    <form id="f-reg"><div class="dos"><div><label for="g-nom">Nombre de usuario</label><input id="g-nom" required></div><div><label for="g-mail">Mail</label><input id="g-mail" type="email" required></div><div><label for="g-pass">Contraseña</label><input id="g-pass" type="password" required></div></div>
+    <button class="btn">Crear cuenta</button></form><div class="msg" id="a-reg"></div></div>
+
+  <div class="bloque post"><h2>Recuperar contraseña</h2>
+    <form id="f-olvide"><label for="r-mail">Paso 1: pedir el código por mail <span class="ep">POST /auth/olvide-contrasena</span></label><input id="r-mail" type="email" required><button class="btn">Enviar código</button></form><div class="msg" id="a-olvide"></div>
+    <form id="f-verif"><label for="r-token">Paso 2: verificar el código <span class="ep">POST /auth/verificar-token</span></label><input id="r-token" required><button class="btn">Verificar código</button></form><div class="msg" id="a-verif"></div>
+    <form id="f-nueva"><label for="r-nueva">Paso 3: elegir la nueva contraseña (usa el código del paso 2) <span class="ep">POST /auth/restablecer-contrasena</span></label><input id="r-nueva" type="password" required><button class="btn">Cambiar contraseña</button></form><div class="msg" id="a-nueva"></div></div>
+</section>
+
+<section class="panel" id="p-resumen"><div class="bloque"><h2>Resumen del jugador <span class="ep">GET /estadisticas/resumen</span></h2><div id="c-resumen"></div></div></section>
+<section class="panel" id="p-historial"><div class="bloque"><h2>Historial de partidas <span class="ep">GET /estadisticas/partidas</span></h2><div id="c-historial"></div></div></section>
+<section class="panel" id="p-misiones"><div class="bloque"><h2>Misiones <span class="ep">GET /estadisticas/misiones</span></h2><p class="vacio" id="c-cant"></p><div id="c-misiones"></div></div></section>
+<section class="panel" id="p-logs"><div id="c-logs"></div></section>
+
+<section class="panel" id="p-partida"><div class="bloque post"><h2>Guardar una partida de prueba <span class="ep">POST /juego/partidas</span></h2>
+  <p class="vacio">Los puntos de la partida salen de las misiones que cumplas por primera vez.</p>
+  <form id="f-partida"><div class="dos">
+    <div><label for="p-cod">Código de partida</label><input id="p-cod" required></div>
+    <div><label for="p-dur">Duración (segundos)</label><input id="p-dur" type="number" min="1" value="300" required></div>
+    <div><label for="p-rol">Rol</label><select id="p-rol"><option>Cazador</option><option>Prop</option></select></div>
+    <div><label for="p-res">Resultado</label><select id="p-res"><option>Victoria</option><option>Derrota</option></select></div>
+    <div class="g-caz"><label for="p-ac">Disparos acertados</label><input id="p-ac" type="number" min="0" value="8"></div>
+    <div class="g-caz"><label for="p-tot">Disparos totales</label><input id="p-tot" type="number" min="0" value="12"></div>
+    <div class="g-prop" hidden><label for="p-sil">Silbidos</label><input id="p-sil" type="number" min="0" value="3"></div>
+    <div class="g-prop" hidden><label for="p-surv">Tiempo sobrevivido (segundos)</label><input id="p-surv" type="number" min="0" value="150"></div>
+    <div><label for="p-hab">Habilidades usadas</label><input id="p-hab" type="number" min="0" max="10" value="0"></div>
+  </div>
+  <label class="chk g-caz"><input type="checkbox" id="p-timbre" checked>Incluir un disparo certero durante la fase del timbre</label>
+  <label class="chk"><input type="checkbox" id="p-aband">Registrar un abandono</label>
+  <button class="btn">Guardar partida</button></form><div class="msg" id="a-partida"></div></div></section>
+
+<section class="bloque" id="pedidos"><h2>Pedidos a la API</h2><p class="vacio">Cada pedido que hace esta página queda registrado acá, con su respuesta.</p><div id="lista"></div></section>
+</main>
+
+<script>
+const API = location.protocol.startsWith("http") ? "" : "https://api-prop-tic-hunt.vercel.app";
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const guardar = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} };
+const leer = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
+let token = leer("token");
+
+function anotar(metodo, ruta, status, data) {
+  const d = document.createElement("details");
+  const s = document.createElement("summary");
+  s.textContent = `${status || "sin respuesta"}  ${metodo} ${ruta}`;
+  s.className = status >= 200 && status < 300 ? "bien" : "mal";
+  const p = document.createElement("pre");
+  p.textContent = typeof data === "string" ? data : JSON.stringify(data, (k, v) => (k === "token" ? "(token guardado)" : v), 2);
+  d.append(s, p);
+  const l = $("#lista");
+  l.prepend(d);
+  while (l.children.length > 12) l.lastChild.remove();
+}
+
+async function api(metodo, ruta, cuerpo) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = "Bearer " + token;
+  let status = 0, data = null;
+  try {
+    const r = await fetch(API + ruta, { method: metodo, headers, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+    status = r.status;
+    const txt = await r.text();
+    try { data = JSON.parse(txt); } catch { data = txt; }
+  } catch { data = { message: "No se pudo conectar con la API" }; }
+  anotar(metodo, ruta, status, data);
+  return { ok: status >= 200 && status < 300, status, data };
+}
+
+const aviso = (id, ok, texto) => { const e = $(id); e.className = "msg " + (ok ? "ok" : "err"); e.textContent = texto; };
+const error = (r) => `<p class="msg err">${esc(r.data?.message || "Algo salió mal")}</p>`;
+const sinSesion = (id) => {
+  if (token) return false;
+  $(id).innerHTML = '<p class="vacio">Iniciá sesión en la pestaña Cuenta para ver esto.</p>';
+  return true;
+};
+
+function sesion() {
+  $("#quien").textContent = token ? leer("nombre") : "";
+  $("#salir").hidden = !token;
+}
+async function puntos() {
+  if (!token) { $("#pts").textContent = "—"; return; }
+  const r = await api("GET", "/estadisticas/puntos");
+  if (r.ok) $("#pts").textContent = r.data.puntos_totales;
+  else if (r.status === 401 || r.status === 403) cerrar();
+}
+function cerrar() {
+  token = ""; guardar("token", ""); guardar("nombre", "");
+  sesion(); puntos(); ir("cuenta");
+}
+
+/* Cuenta */
+$("#b-estado").onclick = async () => {
+  const r = await api("GET", "/");
+  aviso("#a-estado", r.ok, r.ok ? "La API responde: " + r.data : "No hay conexión con la API");
+};
+$("#f-login").onsubmit = async (e) => {
+  e.preventDefault();
+  const r = await api("POST", "/auth/login", { mail: $("#l-mail").value.trim(), contrasena: $("#l-pass").value });
+  if (r.ok) {
+    token = r.data.token; guardar("token", token); guardar("nombre", r.data.usuario.nombre);
+    sesion(); await puntos();
+    aviso("#a-login", true, "Sesión iniciada como " + r.data.usuario.nombre);
+  } else aviso("#a-login", false, r.data.message || "No se pudo iniciar sesión");
+};
+$("#f-reg").onsubmit = async (e) => {
+  e.preventDefault();
+  const r = await api("POST", "/auth/registro", { nombre: $("#g-nom").value.trim(), mail: $("#g-mail").value.trim(), contrasena: $("#g-pass").value });
+  aviso("#a-reg", r.ok, r.ok ? "Cuenta creada para " + r.data.nombre + ". Ahora podés entrar." : r.data.message || "No se pudo crear la cuenta");
+};
+$("#f-olvide").onsubmit = async (e) => {
+  e.preventDefault();
+  const r = await api("POST", "/auth/olvide-contrasena", { mail: $("#r-mail").value.trim() });
+  aviso("#a-olvide", r.ok, r.data.message || (r.ok ? "Pedido enviado" : "No se pudo enviar el pedido"));
+};
+$("#f-verif").onsubmit = async (e) => {
+  e.preventDefault();
+  const r = await api("POST", "/auth/verificar-token", { token: $("#r-token").value.trim() });
+  aviso("#a-verif", r.ok, r.data.message || (r.ok ? "Código válido" : "Código inválido"));
+};
+$("#f-nueva").onsubmit = async (e) => {
+  e.preventDefault();
+  const r = await api("POST", "/auth/restablecer-contrasena", { token: $("#r-token").value.trim(), nuevaContrasena: $("#r-nueva").value });
+  aviso("#a-nueva", r.ok, r.data.message || (r.ok ? "Contraseña cambiada" : "No se pudo cambiar la contraseña"));
+};
+$("#salir").onclick = cerrar;
+
+/* Estadísticas */
+const ETQ = { partidas_jugadas: "Partidas jugadas", victorias: "Victorias", derrotas: "Derrotas", porcentaje_victorias: "Victorias", porcentaje_victorias_cazador: "Victorias como Cazador", porcentaje_victorias_prop: "Victorias como Prop", rol_mas_jugado: "Rol más jugado", tiempo_total: "Tiempo total", duracion_promedio: "Duración promedio", racha_actual: "Racha actual", mejor_racha: "Mejor racha" };
+async function resumen() {
+  if (sinSesion("#c-resumen")) return;
+  const r = await api("GET", "/estadisticas/resumen");
+  $("#c-resumen").innerHTML = r.ok
+    ? '<div class="grid">' + Object.entries(ETQ).map(([k, t]) => `<div class="stat"><span>${t}</span><b>${esc(r.data[k])}${k.startsWith("porcentaje") ? "%" : ""}</b></div>`).join("") + "</div>"
+    : error(r);
+}
+async function historial() {
+  if (sinSesion("#c-historial")) return;
+  const r = await api("GET", "/estadisticas/partidas");
+  if (!r.ok) { $("#c-historial").innerHTML = error(r); return; }
+  if (!r.data.length) { $("#c-historial").innerHTML = '<p class="vacio">Todavía no jugaste partidas. Guardá una desde la pestaña Partida de prueba.</p>'; return; }
+  const filas = r.data.map((p) => `<tr><td>${esc(p.fecha)}</td><td>${esc(p.hora)}</td><td>${esc(p.rol)}</td><td class="${p.resultado === "Victoria" ? "vic" : "der"}">${esc(p.resultado)}</td><td>${esc(p.puntos_obtenidos)}</td><td>${esc(p.duracion_formateada)}</td><td>${esc(p.cantidad_jugadores)}</td><td>${esc(p.puesto)}°</td><td>${p.rol === "Cazador" ? `${esc(p.disparos_acertados)}/${esc(p.disparos_totales)} disparos (${esc(p.precision_disparos)}%)` : `${esc(p.silbidos)} silbidos, sobrevivió ${esc(p.tiempo_sobrevivido)}`}</td></tr>`).join("");
+  $("#c-historial").innerHTML = `<div class="tabla"><table><tr><th>Fecha</th><th>Hora</th><th>Rol</th><th>Resultado</th><th>Puntos</th><th>Duración</th><th>Jugadores</th><th>Puesto</th><th>Detalle</th></tr>${filas}</table></div>`;
+}
+async function misiones() {
+  if (sinSesion("#c-misiones")) return;
+  const r = await api("GET", "/estadisticas/misiones");
+  if (!r.ok) { $("#c-misiones").innerHTML = error(r); return; }
+  $("#c-cant").textContent = `${r.data.filter((m) => m.completada).length} de ${r.data.length} completadas`;
+  $("#c-misiones").innerHTML = '<div class="mis">' + r.data.map((m) => `<div class="m ${m.completada ? "ok" : ""}"><div class="mt">${esc(m.descripcion)}</div><div class="mf"><span>${esc(m.progreso_texto)}</span><b>+${esc(m.recompensa)} PTS</b></div><div class="barra"><i style="width:${Number(m.porcentaje) || 0}%"></i></div>${m.completada ? "<small>Completada</small>" : ""}</div>`).join("") + "</div>";
+}
+
+/* Logs */
+const LOGS = [["disparo-cazador", "Disparos del Cazador"], ["uso-habilidad", "Uso de habilidades"], ["abandono", "Abandonos"]];
+function tabla(datos) {
+  const lista = Array.isArray(datos) ? datos : (Object.values(datos || {}).find(Array.isArray) || []);
+  if (!lista.length) return '<p class="vacio">Sin registros todavía.</p>';
+  const cols = Object.keys(lista[0]);
+  const val = (v) => (typeof v === "boolean" ? (v ? "Sí" : "No") : v);
+  return '<div class="tabla"><table><tr>' + cols.map((c) => `<th>${esc(c.replace(/_/g, " "))}</th>`).join("") + "</tr>" +
+    lista.map((f) => "<tr>" + cols.map((c) => `<td>${esc(val(f[c]))}</td>`).join("") + "</tr>").join("") + "</table></div>";
+}
+async function logs() {
+  if (sinSesion("#c-logs")) return;
+  const rs = await Promise.all(LOGS.map(([ruta]) => api("GET", "/logs/" + ruta)));
+  $("#c-logs").innerHTML = rs.map((r, i) => `<div class="bloque"><h2>${LOGS[i][1]} <span class="ep">GET /logs/${LOGS[i][0]}</span></h2>${r.ok ? tabla(r.data) : error(r)}</div>`).join("");
+}
+
+/* Partida de prueba */
+const codigoNuevo = () => { $("#p-cod").value = "web-" + Date.now().toString(36); };
+$("#p-rol").onchange = () => {
+  const caz = $("#p-rol").value === "Cazador";
+  document.querySelectorAll(".g-caz").forEach((e) => (e.hidden = !caz));
+  document.querySelectorAll(".g-prop").forEach((e) => (e.hidden = caz));
+};
+$("#f-partida").onsubmit = async (e) => {
+  e.preventDefault();
+  if (!token) { aviso("#a-partida", false, "Iniciá sesión en la pestaña Cuenta primero."); return; }
+  const n = (id) => Number($(id).value);
+  const rol = $("#p-rol").value, caz = rol === "Cazador", dur = n("#p-dur");
+  const cuerpo = {
+    codigo_partida: $("#p-cod").value.trim(), duracion: dur, rol, resultado: $("#p-res").value,
+    disparos_acertados: caz ? n("#p-ac") : 0, disparos_totales: caz ? n("#p-tot") : 0,
+    silbidos: caz ? 0 : n("#p-sil"), tiempo_sobrevivido: caz ? 0 : n("#p-surv"),
+    disparos: caz && $("#p-timbre").checked ? [{ impacto_exitoso: true, vida_restante: 90, fase_timbre_sonando: true, segundo_partida: Math.max(dur - 30, 0) }] : [],
+    habilidades: Array.from({ length: n("#p-hab") }, (_, i) => ({ nombre_habilidad: "Habilidad del " + rol, momento_uso: 30 * (i + 1) })),
+    abandonos: $("#p-aband").checked ? [{ tiempo_transcurrido: Math.floor(dur / 2), rol_actual: rol, nivel_sospecha_actual: 0, vida_cazador_actual: 0 }] : [],
+  };
+  const r = await api("POST", "/juego/partidas", cuerpo);
+  const a = $("#a-partida");
+  if (r.ok) {
+    const lista = r.data.misiones_cumplidas || [];
+    const total = lista.reduce((s, m) => s + (m.recompensa || 0), 0);
+    a.className = "msg ok";
+    a.innerHTML = esc(r.data.message) + ". " + (lista.length
+      ? `Misiones nuevas: ${lista.map((m) => esc(m.descripcion) + " (+" + esc(m.recompensa) + ")").join("; ")}. Total: +${total} PTS.`
+      : "No cumpliste misiones nuevas, así que no sumaste puntos.");
+    codigoNuevo(); puntos();
+  } else aviso("#a-partida", false, r.data.message || "No se pudo guardar la partida");
+};
+
+/* Navegación */
+const CARGAR = { resumen, historial, misiones, logs };
+function ir(nombre) {
+  document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("on", p.id === "p-" + nombre));
+  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === nombre));
+  if (CARGAR[nombre]) CARGAR[nombre]();
+}
+document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => ir(b.dataset.t)));
+
+sesion(); puntos(); codigoNuevo(); ir("cuenta");
+</script>
+</body>
+</html>
