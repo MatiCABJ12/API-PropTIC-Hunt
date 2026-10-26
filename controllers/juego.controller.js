@@ -138,10 +138,20 @@ const guardarPartida = async (req, res) => {
     abandonos: datos.abandonos ?? [],
   };
 
-  const misionesCumplidas = await JuegoService.guardarPartida(req.usuario.id_usuario, limpio);
+  // Modo ensayo: ?prueba=true hace todo igual pero no guarda nada
+  const soloProbar = req.query.prueba === "true";
 
-    res.status(201).json({
-    message: "Partida guardada correctamente",
+  const misionesCumplidas = await JuegoService.guardarPartida(
+    req.usuario.id_usuario,
+    limpio,
+    soloProbar
+  );
+
+  res.status(201).json({
+    message: soloProbar
+      ? "Prueba correcta: la partida NO se guardó"
+      : "Partida guardada correctamente",
+    prueba: soloProbar,
     misiones_cumplidas: misionesCumplidas,
   });
 };

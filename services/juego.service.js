@@ -47,7 +47,7 @@ const guardarLogs = async (client, idPartida, idUsuario, datos) => {
   }
 };
 
-const guardarPartida = async (idUsuario, datos) => {
+const guardarPartida = async (idUsuario, datos, soloProbar = false) => {
   const client = await pool.connect();
 
   try {
@@ -115,7 +115,7 @@ const guardarPartida = async (idUsuario, datos) => {
       );
     }
 
-    await client.query("COMMIT");
+    await client.query(soloProbar ? "ROLLBACK" : "COMMIT");
     return misionesNuevas.map(({ id_mision, ...resto }) => resto);
   } catch (error) {
     await client.query("ROLLBACK");
