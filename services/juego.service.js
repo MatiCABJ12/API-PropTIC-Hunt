@@ -32,16 +32,16 @@ const guardarLogs = async (client, idPartida, idUsuario, datos) => {
     );
   }
 
-  if (datos.abandonos.length > 0) {
+    if (datos.abandonos.length > 0) {
     await client.query(
       `INSERT INTO log_abandono
-         (tiempo_transcurrido, rol_actual, nivel_sospecha_actual,
+         (tiempo_transcurrido, rol_actual,
           vida_cazador_actual, id_partida, id_usuario)
-       SELECT x.tiempo_transcurrido, x.rol_actual, x.nivel_sospecha_actual,
+       SELECT x.tiempo_transcurrido, x.rol_actual,
               x.vida_cazador_actual, $2::int, $3::int
        FROM json_to_recordset($1::json) AS x(
          tiempo_transcurrido int, rol_actual text,
-         nivel_sospecha_actual int, vida_cazador_actual int)`,
+         vida_cazador_actual int)`,
       [JSON.stringify(datos.abandonos), idPartida, idUsuario]
     );
   }

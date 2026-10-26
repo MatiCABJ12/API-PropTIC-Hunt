@@ -24,7 +24,7 @@ const consultar = async (tabla, columnas, orden, idUsuario, joinExtra = "") => {
 const getAbandono = (idUsuario) =>
   consultar(
     "log_abandono",
-    "l.tiempo_transcurrido, l.rol_actual, l.nivel_sospecha_actual, l.vida_cazador_actual",
+    "l.tiempo_transcurrido, l.rol_actual, l.vida_cazador_actual",
     "l.id_abandono",
     idUsuario
   );

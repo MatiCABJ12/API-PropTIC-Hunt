@@ -21,7 +21,6 @@ const LOGS = {
   abandonos: {
     tiempo_transcurrido: "int",
     rol_actual: "texto",
-    nivel_sospecha_actual: "int",
     vida_cazador_actual: "int",
   },
 };

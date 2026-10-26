@@ -271,7 +271,7 @@ $("#f-partida").onsubmit = async (e) => {
     silbidos: caz ? 0 : n("#p-sil"), tiempo_sobrevivido: caz ? 0 : n("#p-surv"),
     disparos: caz && $("#p-timbre").checked ? [{ impacto_exitoso: true, vida_restante: 90, fase_timbre_sonando: true, segundo_partida: Math.max(dur - 30, 0) }] : [],
     habilidades: Array.from({ length: n("#p-hab") }, (_, i) => ({ nombre_habilidad: "Habilidad del " + rol, momento_uso: 30 * (i + 1) })),
-    abandonos: $("#p-aband").checked ? [{ tiempo_transcurrido: Math.floor(dur / 2), rol_actual: rol, nivel_sospecha_actual: 0, vida_cazador_actual: 0 }] : [],
+    abandonos: $("#p-aband").checked ? [{ tiempo_transcurrido: Math.floor(dur / 2), rol_actual: rol, vida_cazador_actual: 0 }] : [],
   };
   const r = await api("POST", "/juego/partidas", cuerpo);
   const a = $("#a-partida");
