@@ -15,28 +15,32 @@ const LOGS = {
     impacto_exitoso: "bool",
     vida_restante: "int",
     fase_timbre_sonando: "bool",
-    segundo_partida: "int",
+    segundo_partida: "decimal",
   },
-  habilidades: { nombre_habilidad: "texto", momento_uso: "int" },
+  habilidades: { nombre_habilidad: "texto", momento_uso: "decimal" },
   abandonos: {
-    tiempo_transcurrido: "int",
+    tiempo_transcurrido: "decimal",
     rol_actual: "texto",
     vida_cazador_actual: "int",
   },
 };
 
 const esEntero = (valor) => Number.isInteger(valor) && valor >= 0;
+const esDecimal = (valor) =>
+  typeof valor === "number" && Number.isFinite(valor) && valor >= 0;
 const esTexto = (valor) =>
   typeof valor === "string" && valor.trim() !== "" && valor.length <= 100;
 
 const VALIDADORES = {
   int: esEntero,
+  decimal: esDecimal,
   bool: (valor) => typeof valor === "boolean",
   texto: esTexto,
 };
 
 const DESCRIPCIONES = {
   int: "un número entero mayor o igual a 0",
+  decimal: "un número mayor o igual a 0 (puede tener decimales)",
   bool: "true o false",
   texto: "un texto de hasta 100 caracteres",
 };
@@ -79,8 +83,8 @@ const validarPartida = (d) => {
   if (!esTexto(d.codigo_partida)) {
     return "Falta el codigo_partida (un texto de hasta 100 caracteres)";
   }
-  if (!esEntero(d.duracion) || d.duracion === 0) {
-    return "La duración tiene que ser un número entero de segundos mayor a 0";
+  if (!esDecimal(d.duracion) || d.duracion === 0) {
+    return "La duración tiene que ser un número de segundos mayor a 0 (puede tener decimales)";
   }
   if (!ROLES.includes(d.rol)) {
     return "El rol tiene que ser Cazador o Prop";
@@ -90,8 +94,12 @@ const validarPartida = (d) => {
   }
 
   for (const campo of CAMPOS_OPCIONALES) {
-    if (d[campo] !== undefined && !esEntero(d[campo])) {
-      return `${campo} tiene que ser un número entero mayor o igual a 0`;
+    const esTiempo = campo === "tiempo_sobrevivido";
+    const valido = esTiempo ? esDecimal : esEntero;
+    if (d[campo] !== undefined && !valido(d[campo])) {
+      return esTiempo
+        ? `${campo} tiene que ser un número de segundos mayor o igual a 0 (puede tener decimales)`
+        : `${campo} tiene que ser un número entero mayor o igual a 0`;
     }
   }
 

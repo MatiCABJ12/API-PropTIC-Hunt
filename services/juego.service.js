@@ -16,7 +16,7 @@ const guardarLogs = async (client, idPartida, idUsuario, datos) => {
               x.segundo_partida, $2::int, $3::int
        FROM json_to_recordset($1::json) AS x(
          impacto_exitoso boolean, vida_restante int,
-         fase_timbre_sonando boolean, segundo_partida int)`,
+         fase_timbre_sonando boolean, segundo_partida double precision)`,
       [JSON.stringify(datos.disparos), idPartida, idUsuario]
     );
   }
@@ -27,7 +27,7 @@ const guardarLogs = async (client, idPartida, idUsuario, datos) => {
          (nombre_habilidad, momento_uso, id_partida, id_usuario)
        SELECT x.nombre_habilidad, x.momento_uso, $2::int, $3::int
        FROM json_to_recordset($1::json) AS x(
-         nombre_habilidad text, momento_uso int)`,
+         nombre_habilidad text, momento_uso double precision)`,
       [JSON.stringify(datos.habilidades), idPartida, idUsuario]
     );
   }
@@ -40,7 +40,7 @@ const guardarLogs = async (client, idPartida, idUsuario, datos) => {
        SELECT x.tiempo_transcurrido, x.rol_actual,
               x.vida_cazador_actual, $2::int, $3::int
        FROM json_to_recordset($1::json) AS x(
-         tiempo_transcurrido int, rol_actual text,
+         tiempo_transcurrido double precision, rol_actual text,
          vida_cazador_actual int)`,
       [JSON.stringify(datos.abandonos), idPartida, idUsuario]
     );
