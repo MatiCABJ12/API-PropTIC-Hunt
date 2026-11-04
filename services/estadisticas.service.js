@@ -8,10 +8,17 @@ const getPuntos = async (idUsuario) => {
   return rows[0];
 };
 
+// Muestra los segundos con hasta 2 decimales (ej: "1m 30.7s").
+// Se corta (no se redondea hacia arriba) para no mostrar nunca más
+// tiempo del que realmente se alcanzó.
 const formatearDuracion = (segundosTotales) => {
-  const horas = Math.floor(segundosTotales / 3600);
-  const minutos = Math.floor((segundosTotales % 3600) / 60);
-  const segundos = segundosTotales % 60;
+  // Se trabaja en centésimas de segundo (enteros) para evitar errores de coma flotante.
+  // El 1e-6 compensa errores como 119.6 * 100 = 11959.999999999998
+  const centesimas = Math.floor(segundosTotales * 100 + 1e-6);
+
+  const horas = Math.floor(centesimas / 360000);
+  const minutos = Math.floor((centesimas % 360000) / 6000);
+  const segundos = (centesimas % 6000) / 100;
 
   const partes = [];
   if (horas > 0) partes.push(`${horas}h`);
@@ -85,8 +92,8 @@ const getResumen = async (idUsuario) => {
        COUNT(*) FILTER (WHERE participa.rol = 'Cazador' AND participa.resultado = 'Victoria')::int AS victorias_cazador,
        COUNT(*) FILTER (WHERE participa.rol = 'Prop')::int AS partidas_prop,
        COUNT(*) FILTER (WHERE participa.rol = 'Prop' AND participa.resultado = 'Victoria')::int AS victorias_prop,
-       COALESCE(SUM(partida.duracion), 0)::int AS tiempo_total,
-       COALESCE(ROUND(AVG(partida.duracion)), 0)::int AS duracion_promedio
+       COALESCE(SUM(partida.duracion), 0) AS tiempo_total,
+       COALESCE(AVG(partida.duracion), 0) AS duracion_promedio
      FROM participa
      JOIN partida ON participa.id_partida = partida.id_partida
      WHERE participa.id_usuario = $1`,
@@ -146,7 +153,7 @@ const calcularMisiones = async (idUsuario, db) => {
        COUNT(*) FILTER (WHERE resultado = 'Victoria')::int AS victorias,
        COUNT(*) FILTER (WHERE resultado = 'Victoria' AND rol = 'Prop')::int AS victorias_prop,
        COUNT(*) FILTER (WHERE resultado = 'Victoria' AND rol = 'Cazador')::int AS victorias_cazador,
-       COALESCE(MAX(tiempo_sobrevivido), 0)::int AS mejor_tiempo_sobrevivido,
+       COALESCE(MAX(tiempo_sobrevivido), 0) AS mejor_tiempo_sobrevivido,
        COALESCE(MAX(disparos_acertados), 0)::int AS mejor_disparos_acertados,
        COALESCE(MAX(silbidos), 0)::int AS mejor_silbidos
      FROM participa
@@ -192,6 +199,7 @@ const calcularMisiones = async (idUsuario, db) => {
   return misiones.map((mision) => {
     const objetivo = mision.objetivo ?? 0;
     const progreso = Math.min(medidas[mision.tipo] ?? 0, objetivo);
+    const completada = objetivo > 0 && progreso >= objetivo;
 
     const progresoTexto =
       mision.tipo === "tiempo_sobrevivido"
@@ -203,8 +211,9 @@ const calcularMisiones = async (idUsuario, db) => {
       descripcion: mision.descripcion,
       recompensa: mision.recompensa,
       progreso_texto: progresoTexto,
-      porcentaje: porcentaje(progreso, objetivo),
-      completada: objetivo > 0 && progreso >= objetivo,
+      // Nunca muestra 100% si la misión no está cumplida
+      porcentaje: completada ? 100 : Math.min(99, porcentaje(progreso, objetivo)),
+      completada,
     };
   });
 };
