@@ -126,6 +126,14 @@ const guardar = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.
 const leer = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
 let token = leer("token");
 
+/* Formato de tiempos: solo cambia cómo se VE, los valores guardados no se tocan */
+// "1m 25.41s" -> "1m 25,41s"
+const coma = (t) => String(t ?? "").replace(/(\d)\.(\d)/g, "$1,$2");
+// Campos de tiempo de los logs
+const TIEMPOS = ["segundo_partida", "momento_uso", "tiempo_transcurrido"];
+// 25.414146423339844 -> "25,41" (corta, no redondea)
+const dosDecimales = (n) => String(Math.floor(Number(n) * 100 + 1e-6) / 100).replace(".", ",");
+
 function anotar(metodo, ruta, status, data) {
   const d = document.createElement("details");
   const s = document.createElement("summary");
@@ -218,7 +226,7 @@ async function resumen() {
   if (sinSesion("#c-resumen")) return;
   const r = await api("GET", "/estadisticas/resumen");
   $("#c-resumen").innerHTML = r.ok
-    ? '<div class="grid">' + Object.entries(ETQ).map(([k, t]) => `<div class="stat"><span>${t}</span><b>${esc(r.data[k])}${k.startsWith("porcentaje") ? "%" : ""}</b></div>`).join("") + "</div>"
+    ? '<div class="grid">' + Object.entries(ETQ).map(([k, t]) => `<div class="stat"><span>${t}</span><b>${esc(coma(r.data[k]))}${k.startsWith("porcentaje") ? "%" : ""}</b></div>`).join("") + "</div>"
     : error(r);
 }
 async function historial() {
@@ -226,7 +234,7 @@ async function historial() {
   const r = await api("GET", "/estadisticas/partidas");
   if (!r.ok) { $("#c-historial").innerHTML = error(r); return; }
   if (!r.data.length) { $("#c-historial").innerHTML = '<p class="vacio">Todavía no jugaste partidas. Guardá una desde la pestaña Partida de prueba.</p>'; return; }
-  const filas = r.data.map((p) => `<tr><td>${esc(p.fecha)}</td><td>${esc(p.hora)}</td><td>${esc(p.rol)}</td><td class="${p.resultado === "Victoria" ? "vic" : "der"}">${esc(p.resultado)}</td><td>${esc(p.puntos_obtenidos)}</td><td>${esc(p.duracion_formateada)}</td><td>${esc(p.cantidad_jugadores)}</td><td>${esc(p.puesto)}°</td><td>${p.rol === "Cazador" ? `${esc(p.disparos_acertados)}/${esc(p.disparos_totales)} disparos (${esc(p.precision_disparos)}%)` : `${esc(p.silbidos)} silbidos, sobrevivió ${esc(p.tiempo_sobrevivido)}`}</td></tr>`).join("");
+  const filas = r.data.map((p) => `<tr><td>${esc(p.fecha)}</td><td>${esc(p.hora)}</td><td>${esc(p.rol)}</td><td class="${p.resultado === "Victoria" ? "vic" : "der"}">${esc(p.resultado)}</td><td>${esc(p.puntos_obtenidos)}</td><td>${esc(coma(p.duracion_formateada))}</td><td>${esc(p.cantidad_jugadores)}</td><td>${esc(p.puesto)}°</td><td>${p.rol === "Cazador" ? `${esc(p.disparos_acertados)}/${esc(p.disparos_totales)} disparos (${esc(p.precision_disparos)}%)` : `${esc(p.silbidos)} silbidos, sobrevivió ${esc(coma(p.tiempo_sobrevivido))}`}</td></tr>`).join("");
   $("#c-historial").innerHTML = `<div class="tabla"><table><tr><th>Fecha</th><th>Hora</th><th>Rol</th><th>Resultado</th><th>Puntos</th><th>Duración</th><th>Jugadores</th><th>Puesto</th><th>Detalle</th></tr>${filas}</table></div>`;
 }
 async function misiones() {
@@ -234,7 +242,7 @@ async function misiones() {
   const r = await api("GET", "/estadisticas/misiones");
   if (!r.ok) { $("#c-misiones").innerHTML = error(r); return; }
   $("#c-cant").textContent = `${r.data.filter((m) => m.completada).length} de ${r.data.length} completadas`;
-  $("#c-misiones").innerHTML = '<div class="mis">' + r.data.map((m) => `<div class="m ${m.completada ? "ok" : ""}"><div class="mt">${esc(m.descripcion)}</div><div class="mf"><span>${esc(m.progreso_texto)}</span><b>+${esc(m.recompensa)} PTS</b></div><div class="barra"><i style="width:${Number(m.porcentaje) || 0}%"></i></div>${m.completada ? "<small>Completada</small>" : ""}</div>`).join("") + "</div>";
+  $("#c-misiones").innerHTML = '<div class="mis">' + r.data.map((m) => `<div class="m ${m.completada ? "ok" : ""}"><div class="mt">${esc(m.descripcion)}</div><div class="mf"><span>${esc(coma(m.progreso_texto))}</span><b>+${esc(m.recompensa)} PTS</b></div><div class="barra"><i style="width:${Number(m.porcentaje) || 0}%"></i></div>${m.completada ? "<small>Completada</small>" : ""}</div>`).join("") + "</div>";
 }
 
 /* Logs */
@@ -243,9 +251,9 @@ function tabla(datos) {
   const lista = Array.isArray(datos) ? datos : (Object.values(datos || {}).find(Array.isArray) || []);
   if (!lista.length) return '<p class="vacio">Sin registros todavía.</p>';
   const cols = Object.keys(lista[0]);
-  const val = (v) => (typeof v === "boolean" ? (v ? "Sí" : "No") : v);
+  const val = (v, c) => (typeof v === "boolean" ? (v ? "Sí" : "No") : TIEMPOS.includes(c) && typeof v === "number" ? dosDecimales(v) : v);
   return '<div class="tabla"><table><tr>' + cols.map((c) => `<th>${esc(c.replace(/_/g, " "))}</th>`).join("") + "</tr>" +
-    lista.map((f) => "<tr>" + cols.map((c) => `<td>${esc(val(f[c]))}</td>`).join("") + "</tr>").join("") + "</table></div>";
+    lista.map((f) => "<tr>" + cols.map((c) => `<td>${esc(val(f[c], c))}</td>`).join("") + "</tr>").join("") + "</table></div>";
 }
 async function logs() {
   if (sinSesion("#c-logs")) return;
